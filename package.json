@@ -1,0 +1,30 @@
+{
+  "name": "db-builder-nextjs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.2",
+    "@mui/material": "^7.3.2",
+    "@mui/material-nextjs": "^7.3.2",
+    "next": "14.0.0",
+    "pg": "8.15.5",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "zod": "3.23.2"
+  },
+  "devDependencies": {
+    "@types/node": "20.4.2",
+    "@types/pg": "8.15.5",
+    "@types/react": "18.2.21",
+    "typescript": "5.9.2"
+  }
+}
