@@ -1,90 +1,269 @@
-// components/ModelBuilder.tsx
-"use client";
-import { useState } from "react";
+'use client';
 
-type Field = any;
+import { useState, useEffect } from 'react';
+import {
+  Box,
+  TextField,
+  Select,
+  MenuItem,
+  Checkbox,
+  FormControlLabel,
+  Button,
+  Typography,
+  IconButton,
+  Card,
+  CardContent,
+} from '@mui/material';
+import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { FIELD_TYPES } from '@/lib/sqlGenerator';
+import _ from 'lodash';
 
-export default function ModelBuilder() {
-  const [collectionName, setCollectionName] = useState("");
-  const [fields, setFields] = useState<Field[]>([
-    { name: "id", type: "integer", primary: true, autoIncrement: true },
-  ]);
-  const [applyImmediately, setApplyImmediately] = useState(true);
+const SYSTEM_FIELD_NAMES = [
+  'id',
+  'created_at',
+  'updated_at',
+  'created_by',
+  'owned_by',
+];
+
+type Field = {
+  name: string;
+  type: string;
+  unique?: boolean;
+  target?: string;
+  relation?: string;
+  inverseName?: string;
+};
+
+export default function ModelBuilder({
+  availableModels = [],
+  initialName = '',
+  initialFields = [],
+  mode = 'create', // "create" or "edit"
+}: {
+  availableModels?: string[];
+  initialName?: string;
+  initialFields?: any[];
+  mode?: 'create' | 'edit';
+}) {
+  const [collectionName, setCollectionName] = useState('');
+  const [fields, setFields] = useState<Field[]>([]);
   const [status, setStatus] = useState<string | null>(null);
 
+  // 🔑 Reset state if props change (important when switching models)
+  useEffect(() => {
+    setCollectionName(initialName);
+    setFields(initialFields);
+  }, [initialName, initialFields]);
+
   function updateField(i: number, patch: Partial<Field>) {
-    const c = [...fields];
-    c[i] = { ...c[i], ...patch };
-    setFields(c);
+    setFields((prev) => {
+      const copy = _.cloneDeep(prev); // deep clone ensures no shared refs
+      copy[i] = { ...copy[i], ...patch };
+      return copy;
+    });
   }
 
   function addField() {
-    setFields([...fields, { name: "", type: "text" }]);
+    setFields([...fields, { name: '', type: 'text' }]);
+  }
+
+  function removeField(i: number) {
+    setFields(fields.filter((_, idx) => idx !== i));
   }
 
   async function handleSubmit() {
-    setStatus("saving...");
+    setStatus('saving...');
     try {
-      const resp = await fetch("/api/models", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ collectionName, fields, apply: applyImmediately }),
+      let url = '/api/model-def';
+      let method: 'POST' | 'PATCH' = 'POST';
+
+      if (mode === 'edit') {
+        url = `/api/model-def/${_.snakeCase(collectionName)}`;
+        method = 'PATCH';
+      }
+
+      const resp = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: _.snakeCase(collectionName), fields }),
       });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data?.error || "Error");
-      setStatus("Success");
+
+      if (!resp.ok) throw new Error('Failed to save');
+      setStatus('saved!');
     } catch (err: any) {
-      setStatus("Error: " + err.message);
+      console.error(err);
+      setStatus('error');
     }
   }
 
+  // async function handleSubmit() {
+  //   setStatus('saving...');
+  //   try {
+  //     const resp = await fetch('/api/model-def', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ name: _.snakeCase(collectionName), fields }),
+  //     });
+  //     if (!resp.ok) throw new Error('Failed to save');
+  //     setStatus('saved!');
+  //   } catch (err: any) {
+  //     console.error(err);
+  //     setStatus('error');
+  //   }
+  // }
+  // console.log('fields', fields);
   return (
-    <div className="p-4 max-w-3xl">
-      <h2 className="text-xl font-bold mb-2">Create Model</h2>
+    <Card variant="outlined">
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          New Model
+        </Typography>
 
-      <div className="mb-2">
-        <label className="block text-sm">Collection name</label>
-        <input className="border p-2 w-full" value={collectionName} onChange={(e) => setCollectionName(e.target.value)} />
-      </div>
+        {/* Model Name */}
+        <TextField
+          label="Model Name"
+          fullWidth
+          margin="dense"
+          value={collectionName}
+          onChange={(e) => setCollectionName(e.target.value)}
+        />
 
-      <div className="space-y-2">
+        {/* Fields Table Header */}
+        <Box
+          sx={{
+            display: 'grid',
+            // gridTemplateColumns: '1fr 140px 70px 90px 160px 140px',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: 1,
+            fontWeight: 'bold',
+            mt: 2,
+            mb: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Typography>Field Name</Typography>
+          <Typography>Type</Typography>
+          <Typography sx={{ textAlign: 'center' }}>Unique</Typography>
+          <Typography>Relation Type</Typography>
+          <Typography>Target Model</Typography>
+          <Typography>Target Field Name</Typography>
+          <Typography />
+        </Box>
+
+        {/* Field Rows */}
         {fields.map((f, i) => (
-          <div key={i} className="flex gap-2 items-center">
-            <input placeholder="column name" value={f.name} onChange={(e) => updateField(i, { name: e.target.value })} className="border p-1" />
-            <select value={f.type} onChange={(e) => updateField(i, { type: e.target.value })} className="border p-1">
-              <option value="text">text</option>
-              <option value="richtext">richtext</option>
-              <option value="email">email</option>
-              <option value="password">password</option>
-              <option value="integer">integer</option>
-              <option value="bigint">bigint</option>
-              <option value="decimal">decimal</option>
-              <option value="float">float</option>
-              <option value="boolean">boolean</option>
-              <option value="json">json</option>
-              <option value="enum">enum</option>
-              <option value="relation">relation</option>
-            </select>
+          <Box
+            key={i}
+            sx={{
+              display: _.includes(SYSTEM_FIELD_NAMES, f.name) ? 'none' : 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: 1,
+              alignItems: 'center',
+              mb: 1,
+            }}
+          >
+            {/* Field Name */}
+            <TextField
+              value={f.name}
+              onChange={(e) => updateField(i, { name: e.target.value })}
+              size="small"
+            />
 
-            <label className="text-sm flex items-center gap-1">
-              <input type="checkbox" checked={f.required || false} onChange={(e) => updateField(i, { required: e.target.checked })} /> required
-            </label>
-            <label className="text-sm flex items-center gap-1">
-              <input type="checkbox" checked={f.unique || false} onChange={(e) => updateField(i, { unique: e.target.checked })} /> unique
-            </label>
-          </div>
+            {/* Type */}
+            <Select
+              value={f.type}
+              onChange={(e) => updateField(i, { type: e.target.value })}
+              size="small"
+            >
+              {FIELD_TYPES.map((t) => (
+                <MenuItem key={t} value={t}>
+                  {t}
+                </MenuItem>
+              ))}
+            </Select>
+
+            {/* Unique */}
+            <Checkbox
+              checked={f.unique || false}
+              onChange={(e) => updateField(i, { unique: e.target.checked })}
+              size="small"
+            />
+
+            {/* Relation Type (only for relation) */}
+            <Select
+              value={f.relation || ''}
+              onChange={(e) => updateField(i, { relation: e.target.value })}
+              size="small"
+              disabled={f.type !== 'relation'}
+              displayEmpty
+            >
+              <MenuItem value="">
+                <em>None</em>
+              </MenuItem>
+              <MenuItem value="one-to-one">One to One</MenuItem>
+              <MenuItem value="one-to-many">One to Many</MenuItem>
+              <MenuItem value="many-to-one">Many to One</MenuItem>
+              <MenuItem value="many-to-many">Many to Many</MenuItem>
+            </Select>
+            {/* Target Model (only for relation) */}
+            <Select
+              value={f.target || ''}
+              onChange={(e) => updateField(i, { target: e.target.value })}
+              size="small"
+              disabled={f.type !== 'relation'}
+              displayEmpty
+            >
+              <MenuItem value="">
+                <em>None</em>
+              </MenuItem>
+              {availableModels.map((m) => (
+                <MenuItem key={m} value={m}>
+                  {m}
+                </MenuItem>
+              ))}
+            </Select>
+            {/* Inverse Field Name (for target model) */}
+            <TextField
+              placeholder="Inverse field name"
+              value={f.inverseName || ''}
+              onChange={(e) => updateField(i, { inverseName: e.target.value })}
+              size="small"
+              disabled={f.type !== 'relation'}
+            />
+
+            {/* Delete Button */}
+            <IconButton
+              color="error"
+              onClick={() => removeField(i)}
+              size="small"
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Box>
         ))}
-      </div>
 
-      <div className="mt-2 flex gap-2">
-        <button onClick={addField} className="px-3 py-2 bg-gray-200">Add Column</button>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={applyImmediately} onChange={(e) => setApplyImmediately(e.target.checked)} /> Create table immediately
-        </label>
-        <button onClick={handleSubmit} className="px-3 py-2 bg-blue-600 text-white">Save Model</button>
-      </div>
+        {/* Add Field */}
+        <Box sx={{ mt: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={addField}
+            size="small"
+          >
+            Add Field
+          </Button>
+        </Box>
 
-      {status && <div className="mt-3 text-sm">{status}</div>}
-    </div>
+        {/* Actions */}
+        <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Button variant="contained" onClick={handleSubmit}>
+            Save Model
+          </Button>
+          {status && <Typography variant="body2">{status}</Typography>}
+        </Box>
+      </CardContent>
+    </Card>
   );
 }

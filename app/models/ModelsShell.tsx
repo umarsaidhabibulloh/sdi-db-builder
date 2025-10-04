@@ -18,8 +18,9 @@ import ListItemText from "@mui/material/ListItemText";
 import MenuIcon from "@mui/icons-material/Menu";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
+import _ from 'lodash';
+import { DRAWER_WIDTH } from "@/app/providers/MuiProvider";
 
-const drawerWidth = 280;
 
 export default function ModelsShell({
   models,
@@ -60,7 +61,7 @@ export default function ModelsShell({
                   href={href}
                   selected={selected}
                 >
-                  <ListItemText primary={m.name} />
+                  <ListItemText primary={_.startCase(m.name)} />
                 </ListItemButton>
               </ListItem>
             );
@@ -97,7 +98,7 @@ export default function ModelsShell({
       </AppBar> */}
       <Box
         // component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}
         // aria-label="mailbox folders"
       >
         {/* Permanent drawer for md+ */}
@@ -139,7 +140,7 @@ export default function ModelsShell({
 
       
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}>
+      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` } }}>
         {/* spacing to account for fixed AppBar */}
         {/* <Toolbar /> */}
         {children}

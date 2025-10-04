@@ -1,7 +1,8 @@
 // lib/validators.ts
 export const IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
-export function validateIdentifier(name: string) {
+export function validateIdentifier(name: string) {  
+  // console.log("name", name);
   if (!name || typeof name !== "string") throw new Error("Invalid identifier");
   if (!IDENTIFIER_REGEX.test(name)) throw new Error(`Invalid identifier: ${name}`);
   return name;
